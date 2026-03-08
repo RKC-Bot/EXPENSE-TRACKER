@@ -1,16 +1,6 @@
-# Streamlit Cloud Compatible Requirements
-# Use this instead of requirements.txt if facing deployment issues
-
+# Streamlit Cloud compatible dependencies (lighter and faster to build)
 streamlit>=1.35.0
 pandas>=2.0.0
 openpyxl>=3.1.0
-pytesseract>=0.3.10
 pillow>=9.0.0
-easyocr>=1.7.0
-SpeechRecognition>=3.10.0
 plotly>=5.0.0
-gspread>=5.0.0
-google-auth>=2.0.0
-opencv-python>=4.5.0
-numpy>=1.24.0
-scikit-learn>=1.0.0

@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local database and runtime artifacts
+db/*.db
+*.log
+hs_err_pid*.log
+
+# IDE/editor
+.vscode/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Streamlit probe logs
+streamlit_*.out.log
+streamlit_*.err.log

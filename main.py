@@ -322,6 +322,11 @@ elif selected_menu == "📝 Text Entry":
     st.divider()
     if "text_entry_parsed" not in st.session_state:
         st.session_state.text_entry_parsed = None
+    if "clear_text_entry_input" not in st.session_state:
+        st.session_state.clear_text_entry_input = False
+    if st.session_state.clear_text_entry_input:
+        st.session_state.text_entry_input = ""
+        st.session_state.clear_text_entry_input = False
     
     # Text input mode
     col1, col2 = st.columns([2, 1])
@@ -426,7 +431,7 @@ elif selected_menu == "📝 Text Entry":
                     entry_mode='Text Entry'
                 )
                 st.session_state.text_entry_parsed = None
-                st.session_state.text_entry_input = ""
+                st.session_state.clear_text_entry_input = True
                 st.success(f"✅ Expense added: {final_item} - ₹{final_amount:.2f}")
                 st.balloons()
                 st.rerun()

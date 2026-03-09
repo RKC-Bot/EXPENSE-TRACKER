@@ -106,7 +106,7 @@ if not st.session_state.admin_logged_in:
     
     with st.container():
         st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown("### 🔐 Staff Login")
+        st.markdown("### 🔐 Login")
         st.info("Login with your assigned user ID and password.")
         
         with st.form("login_form"):

@@ -320,6 +320,8 @@ elif selected_menu == "📝 Text Entry":
     st.title("📝 Text Entry")
     st.info("✏️ Enter expense details as text. Simply describe the expense and the app will extract the item and amount.")
     st.divider()
+    if "text_entry_parsed" not in st.session_state:
+        st.session_state.text_entry_parsed = None
     
     # Text input mode
     col1, col2 = st.columns([2, 1])
@@ -338,85 +340,96 @@ elif selected_menu == "📝 Text Entry":
         "📝 Expense Description",
         placeholder="E.g., 'Bought 2kg tomatoes for 250 rupees'",
         height=80,
-        help="Describe your expense in natural language"
+        help="Describe your expense in natural language",
+        key="text_entry_input"
     )
     
     # Try to parse text input
-    if voice_text and st.button("✏️ Process Text Entry", type="primary", use_container_width=True):
+    if st.button("✏️ Process Text Entry", type="primary", use_container_width=True):
         with st.spinner("Processing text input..."):
-            # Parse the text
-            parsed = get_voice().parse_expense_from_text(voice_text)
-            
-            if parsed['success']:
-                st.success(f"✅ Parsed Successfully")
-                
-                # Show parsed data
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.metric("Item", parsed['item_name'])
-                with col2:
-                    st.metric("Amount (₹)", f"{parsed['amount']:.2f}")
-                
-                st.divider()
-                
-                # Allow user to confirm and edit
-                with st.form("voice_expense_form"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        final_item = st.text_input(
-                            "Item Name",
-                            value=parsed['item_name'],
-                            help="Edit if needed"
-                        )
-                        final_category = st.selectbox(
-                            "Category",
-                            st.session_state.db.get_categories()
-                        )
-                        # Auto-categorize
-                        if final_item:
-                            suggested = st.session_state.categorizer.categorize(final_item)
-                            if suggested:
-                                final_category = suggested
-                    
-                    with col2:
-                        final_amount = st.number_input(
-                            "Amount (₹)",
-                            value=parsed['amount'],
-                            min_value=0.0,
-                            step=0.01,
-                            help="Edit if needed"
-                        )
-                        if has_full_db_access:
-                            final_employee = st.selectbox(
-                                "Employee",
-                                st.session_state.db.get_employees() or ["Default"]
-                            )
-                        else:
-                            final_employee = current_staff_name
-                            st.text_input("Employee", value=final_employee, disabled=True)
-                        final_date = st.date_input(
-                            "Date",
-                            value=datetime.now().date()
-                        )
-                    
-                    submitted = st.form_submit_button("✅ Add Expense", type="primary", use_container_width=True)
-                    
-                    if submitted and final_item and final_amount > 0:
-                        st.session_state.db.add_expense(
-                            final_date.strftime('%Y-%m-%d'),
-                            final_item,
-                            final_category,
-                            final_amount,
-                            final_employee,
-                            entry_mode='voice'
-                        )
-                        st.success(f"✅ Expense added: {final_item} - ₹{final_amount:.2f}")
-                        st.balloons()
-                        st.rerun()
+            if not voice_text or not voice_text.strip():
+                st.warning("Please enter expense details before processing.")
+                st.session_state.text_entry_parsed = None
             else:
-                st.warning("⚠️ Could not parse expense. Please try again with more details.")
-                st.info(f"Raw text received: {voice_text}")
+                # Parse the text
+                parsed = get_voice().parse_expense_from_text(voice_text)
+            
+                if parsed['success']:
+                    st.session_state.text_entry_parsed = parsed
+                else:
+                    st.session_state.text_entry_parsed = None
+                    st.warning("⚠️ Could not parse expense. Please try again with more details.")
+                    st.info(f"Raw text received: {voice_text}")
+    
+    parsed = st.session_state.text_entry_parsed
+    if parsed:
+        st.success("✅ Parsed Successfully")
+        
+        # Show parsed data
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Item", parsed['item_name'])
+        with col2:
+            st.metric("Amount (₹)", f"{parsed['amount']:.2f}")
+        
+        st.divider()
+        
+        # Allow user to confirm and edit
+        with st.form("voice_expense_form"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                final_item = st.text_input(
+                    "Item Name",
+                    value=parsed['item_name'],
+                    help="Edit if needed"
+                )
+                categories = st.session_state.db.get_categories()
+                suggested = st.session_state.categorizer.categorize(final_item) if final_item else None
+                default_idx = categories.index(suggested) if suggested in categories else 0
+                final_category = st.selectbox(
+                    "Category",
+                    categories,
+                    index=default_idx
+                )
+            
+            with col2:
+                final_amount = st.number_input(
+                    "Amount (₹)",
+                    value=float(parsed['amount']),
+                    min_value=0.0,
+                    step=0.01,
+                    help="Edit if needed"
+                )
+                if has_full_db_access:
+                    final_employee = st.selectbox(
+                        "Employee",
+                        st.session_state.db.get_employees() or ["Default"]
+                    )
+                else:
+                    final_employee = current_staff_name
+                    st.text_input("Employee", value=final_employee, disabled=True)
+                final_date = st.date_input(
+                    "Date",
+                    value=datetime.now().date()
+                )
+            
+            submitted = st.form_submit_button("✅ Add Expense", type="primary", use_container_width=True)
+            
+            if submitted and final_item and final_amount > 0:
+                st.session_state.db.add_expense(
+                    final_date.strftime('%Y-%m-%d'),
+                    final_item,
+                    final_category,
+                    final_amount,
+                    final_employee,
+                    entry_mode='Text Entry'
+                )
+                st.session_state.text_entry_parsed = None
+                st.session_state.text_entry_input = ""
+                st.success(f"✅ Expense added: {final_item} - ₹{final_amount:.2f}")
+                st.balloons()
+                st.rerun()
     
     st.divider()
     st.subheader("💡 Tips for Text Entry")

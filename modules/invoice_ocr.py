@@ -572,7 +572,42 @@ class InvoiceOCR:
 def extract_from_pdf(pdf_file):
     """Extract text/items from PDF invoice."""
     pdf_bytes = pdf_file if isinstance(pdf_file, bytes) else pdf_file.read()
+    ocr = InvoiceOCR()
 
+    # 1) Try direct text extraction first (works best for digital PDFs).
+    direct_text = ""
+    try:
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            import PyPDF2
+
+            PdfReader = PyPDF2.PdfReader
+
+        pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+        text_parts = []
+        for page in pdf_reader.pages:
+            extracted = page.extract_text() or ""
+            if extracted:
+                text_parts.append(extracted)
+        direct_text = "\n".join(text_parts).strip()
+    except Exception:
+        direct_text = ""
+
+    if direct_text:
+        parsed_items = ocr.parse_invoice_items_ai(direct_text)
+        items = [(row["item_name"], row["amount"]) for row in parsed_items]
+        total = ocr.extract_total_amount(direct_text) or (sum(amount for _, amount in items) if items else None)
+        return {
+            "text": direct_text,
+            "items": items,
+            "parsed_items": parsed_items,
+            "total": total,
+            "ocr_method": "pdf_direct_text",
+            "item_count": len(parsed_items),
+        }
+
+    # 2) Fallback to OCR for scanned/image PDFs.
     try:
         from pdf2image import convert_from_bytes
 
@@ -583,7 +618,6 @@ def extract_from_pdf(pdf_file):
 
         images = convert_from_bytes(pdf_bytes, **kwargs)
         if images:
-            ocr = InvoiceOCR()
             all_text = []
             all_parsed = []
             for image in images:
@@ -613,34 +647,8 @@ def extract_from_pdf(pdf_file):
                 "ocr_method": "pdf_multi_page_ocr",
                 "item_count": len(deduped),
             }
-        return None
     except Exception as e:
-        try:
-            try:
-                from pypdf import PdfReader
-            except ImportError:
-                import PyPDF2
+        return {"error": str(e)}
 
-                PdfReader = PyPDF2.PdfReader
-
-            pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
-            text = ""
-            for page in pdf_reader.pages:
-                text += (page.extract_text() or "") + "\n"
-
-            ocr = InvoiceOCR()
-            parsed_items = ocr.parse_invoice_items_ai(text)
-            items = [(row["item_name"], row["amount"]) for row in parsed_items]
-            total = ocr.extract_total_amount(text)
-
-            return {
-                "text": text,
-                "items": items,
-                "parsed_items": parsed_items,
-                "total": total,
-                "ocr_method": "pdf_direct_fallback",
-                "item_count": len(parsed_items),
-            }
-        except Exception:
-            return {"error": str(e)}
+    return {"error": "No extractable text found in PDF."}
 

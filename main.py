@@ -162,7 +162,7 @@ menu_options = [
     "📄 Upload Invoice",
     "📊 Upload Excel",
     "📸 Camera Capture",
-    "💵 Petty Cash Received",
+    "💵 Cash Received",
     "📁 Manage Categories",
     "📈 Reports"
 ]
@@ -215,7 +215,7 @@ if selected_menu == "🏠 Dashboard":
         st.metric("Total Expenses", f"₹{stats['total_expenses']:,.2f}")
     
     with col2:
-        st.metric("Petty Cash Balance", f"₹{stats['petty_cash_balance']:,.2f}" if has_full_db_access else "Restricted")
+        st.metric("Cash Balance", f"₹{stats['petty_cash_balance']:,.2f}" if has_full_db_access else "Restricted")
     
     with col3:
         st.metric("Total Cash Received", f"₹{stats['total_cash_received']:,.2f}" if has_full_db_access else "Restricted")
@@ -803,12 +803,12 @@ elif selected_menu == "📸 Camera Capture":
                     st.error(f"Error processing image: {str(e)}")
 
 
-elif selected_menu == "💵 Petty Cash Received":
-    st.title("💵 Petty Cash Received")
+elif selected_menu == "💵 Cash Received":
+    st.title("💵 Cash Received")
     
     # Current balance
     balance = st.session_state.db.get_petty_cash_balance()
-    st.metric("Current Petty Cash Balance", f"₹{balance:,.2f}")
+    st.metric("Current Cash Balance", f"₹{balance:,.2f}")
     
     st.divider()
     
